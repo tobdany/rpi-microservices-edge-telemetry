@@ -1,0 +1,14 @@
+# Binarios y carpetas de compilación en C++
+ingestor-microservice-cpp/build/
+*.o
+*.out
+telemetry_service
+
+# Archivos de entorno y dependencias Node
+node_modules/
+*.log
+
+# IDEs y Editores
+.vscode/
+.idea/
+.DS_Store
