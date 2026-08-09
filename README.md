@@ -42,12 +42,3 @@ rpi-microservices-edge-telemetry/
 │
 └── api-testing-postman/               # FASE 4: Documentación de Endpoints
     └── Edge_Microservices_API.json    # Colección exportada de Postman
-## 📁 Requisitos e Instalación
-### Prerrequisitos
-C++ Compiler: g++ (C++17 o superior) / clang / cmake
-
-Base de Datos: MySQL 8.0+ / MySQL Workbench
-
-Node.js & npm: (Para ejecutar JSON Server)
-
-Cliente HTTP: Postman / Bruno / cURL
