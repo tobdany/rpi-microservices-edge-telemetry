@@ -1,0 +1,36 @@
+{
+  "telemetry": [
+    {
+      "id": 1,
+      "node_id": "rpi-oaxaca-01",
+      "hardware": {
+        "cpu_temp": 52.4,
+        "cpu_usage_pct": 45.2,
+        "ram_used_mb": 1850
+      },
+      "containers": [
+        {
+          "container_id": "c1a2b3c4d5",
+          "service_name": "mi-blog-personal",
+          "cpu_pct": 12.1,
+          "ram_mb": 210.5,
+          "status": "RUNNING"
+        },
+        {
+          "container_id": "e6f7g8h9i0",
+          "service_name": "mysql-database",
+          "cpu_pct": 28.4,
+          "ram_mb": 850.0,
+          "status": "RUNNING"
+        },
+        {
+          "container_id": "j1k2l3m4n5",
+          "service_name": "cpp-telemetry-api",
+          "cpu_pct": 2.5,
+          "ram_mb": 18.2,
+          "status": "RUNNING"
+        }
+      ]
+    }
+  ]
+}
