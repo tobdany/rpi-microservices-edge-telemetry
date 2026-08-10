@@ -3,16 +3,33 @@
 #include <mysql/mysql.h>
 #include "httplib.h"
 #include "json.hpp"
+#include "dotenv.h"
 
 using namespace std;
 using json = nlohmann::json;
 
 // Guarda la lectura enviada por el nodo en la base de datos MySQL
-bool save_to_mysql(const string &node_id, double temp, double cpu, int ram)
+bool save_to_mysql(const dotenv &env, const string &node_id, double temp, double cpu, int ram)
 {
+	// Obtenemos los valores sin especificar un valor por defecto
+	string db_host = env.get("DB_HOST");
+	string db_user = env.get("DB_USER");
+	string db_pass = env.get("DB_PASS");
+	string db_name = env.get("DB_NAME");
+	string db_port_str = env.get("DB_PORT");
+
+	// Validación: Si faltan variables críticas, detenemos la ejecución de la consulta
+	if (db_host.empty() || db_user.empty() || db_name.empty() || db_port_str.empty())
+	{
+		cerr << "Error: Faltan variables de entorno requeridas para la conexión a MySQL." << endl;
+		return false;
+	}
+
+	int db_port = stoi(db_port_str);
+
 	MYSQL *conn = mysql_init(NULL);
 
-	if (!mysql_real_connect(conn, "127.0.0.1", "root", "a704Test!", "rpi_edge_monitor", 3306, NULL, 0))
+	if (!mysql_real_connect(conn, db_host.c_str(), db_user.c_str(), db_pass.c_str(), db_name.c_str(), db_port, NULL, 0))
 	{
 		cerr << "Error de conexión a MySQL: " << mysql_error(conn) << endl;
 		mysql_close(conn);
@@ -34,12 +51,27 @@ bool save_to_mysql(const string &node_id, double temp, double cpu, int ram)
 }
 
 // Recupera las últimas 10 lecturas registradas
-json get_telemetry_history()
+json get_telemetry_history(const dotenv &env)
 {
 	json history = json::array();
+
+	string db_host = env.get("DB_HOST");
+	string db_user = env.get("DB_USER");
+	string db_pass = env.get("DB_PASS");
+	string db_name = env.get("DB_NAME");
+	string db_port_str = env.get("DB_PORT");
+
+	if (db_host.empty() || db_user.empty() || db_name.empty() || db_port_str.empty())
+	{
+		cerr << "Error: Faltan variables de entorno para consultar el historial en MySQL." << endl;
+		return history;
+	}
+
+	int db_port = stoi(db_port_str);
+
 	MYSQL *conn = mysql_init(NULL);
 
-	if (!mysql_real_connect(conn, "127.0.0.1", "root", "a704Test!", "rpi_edge_monitor", 3306, NULL, 0))
+	if (!mysql_real_connect(conn, db_host.c_str(), db_user.c_str(), db_pass.c_str(), db_name.c_str(), db_port, NULL, 0))
 	{
 		cerr << "Error de conexión a MySQL: " << mysql_error(conn) << endl;
 		mysql_close(conn);
@@ -73,10 +105,12 @@ json get_telemetry_history()
 
 int main()
 {
+	// Carga el archivo .env al arrancar el programa
+	dotenv env(".env");
 	httplib::Server svr;
 
 	// Recepción de métricas de hardware
-	svr.Post("/telemetry", [](const httplib::Request &req, httplib::Response &res)
+	svr.Post("/telemetry", [&env](const httplib::Request &req, httplib::Response &res)
 			 {
         cout << "\nPetición POST recibida en /telemetry" << endl;
 
@@ -93,7 +127,7 @@ int main()
                 cout << "Sobrecalentamiento en " << node_id << ": " << cpu_temp << "°C" << endl;
             }
 
-            if (save_to_mysql(node_id, cpu_temp, cpu_usage, ram_used)) {
+            if (save_to_mysql(env, node_id, cpu_temp, cpu_usage, ram_used)) {
                 res.status = 201;
                 res.set_content(R"({"status":"success","message":"Telemetry ingested and stored in MySQL"})", "application/json");
             } else {
@@ -107,11 +141,11 @@ int main()
         } });
 
 	// Consulta del historial de lecturas
-	svr.Get("/telemetry", [](const httplib::Request &req, httplib::Response &res)
+	svr.Get("/telemetry", [&env](const httplib::Request &req, httplib::Response &res)
 			{
         cout << "\nPetición GET recibida en /telemetry" << endl;
 
-        json data = get_telemetry_history();
+        json data = get_telemetry_history(env);
 
         json response;
         response["status"] = "success";

@@ -3,6 +3,7 @@ ingestor-microservice-cpp/build/
 *.o
 *.out
 telemetry_service
+app_server
 
 # Archivos de entorno y dependencias Node
 node_modules/
@@ -12,3 +13,6 @@ node_modules/
 .vscode/
 .idea/
 .DS_Store
+
+# Archivos de entorno y credenciales
+.env
