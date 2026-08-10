@@ -15,3 +15,5 @@ SELECT c.service_name, c.image_name, cm.memory_usage_mb, cm.cpu_percent
 FROM containers c
 JOIN container_metrics cm ON c.container_id = cm.container_id
 ORDER BY cm.memory_usage_mb DESC; -- Ordena el resultado según la ram
+
+SELECT * FROM node_telemetry ORDER BY reading_id DESC LIMIT 1;
