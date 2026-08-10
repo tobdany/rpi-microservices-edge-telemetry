@@ -1,112 +1,59 @@
-# 🚀 Edge Telemetry Ingestion Microservice (`ingestor-microservice-cpp`)
+# Microservicio Ingestor de Telemetría (C++)
 
-Este componente es un **microservicio de ingesta de telemetría de alto rendimiento**, desarrollado en **C++17**. Su propósito principal es recibir las métricas de monitoreo de hardware enviadas por nodos Edge (como dispositivos Raspberry Pi), validar la información en tiempo real (detección de sobrecalentamiento) y persistir las lecturas directamente en una base de datos **MySQL**.
+Este microservicio se encarga de recibir métricas de hardware (temperatura de CPU, uso de CPU y memoria RAM) desde los nodos edge vía HTTP POST y almacenarlas en una base de datos MySQL. También expone un endpoint HTTP GET para consultar el historial de lecturas.
 
 ---
 
-## 🏗️ Arquitectura del Servicio
+## 🚀 Requisitos Previos
 
-```text
-[ Nodo Edge / Postman ]
-          │
-          │  HTTP POST / GET
-          ▼
-┌────────────────────────────────────────────────────────┐
-│        Microservicio Ingestor C++ (Puerto 8085)        │
-├────────────────────────────────────────────────────────┤
-│  • Servidor HTTP Multihilo (`httplib.h`)                │
-│  • Parser de Payloads JSON (`nlohmann/json.hpp`)       │
-│  • Lógica de Alertas (>70°C)                          │
-│  • Conector Nativo C/C++ (`libmysqlclient`)            │
-└────────────────────────────────────────────────────────┘
-          │
-          ▼
-┌────────────────────────────────────────────────────────┐
-│             Base de Datos MySQL (Real)                 │
-│         Tabla: `node_telemetry`                        │
-└────────────────────────────────────────────────────────┘
+Asegúrate de contar con lo siguiente instalado en tu sistema:
+
+* **Compilador C++17** (`g++` o `clang`)
+* **CMake** (v3.14 o superior)
+* **Librería cliente de MySQL / MariaDB**:
+  * En Debian/Ubuntu/Raspberry Pi OS: `sudo apt install libmysqlclient-dev`
+  * En macOS: `brew install mysql-client`
+
+---
+
+## ⚙️ Configuración del Entorno (`.env`)
+
+Crea un archivo `.env` dentro del directorio `src/` (o en la raíz de este microservicio) tomando como base la siguiente estructura de variables de entorno:
+
+```env
+# Configuración de MySQL
+DB_HOST=
+DB_USER=
+DB_PASS=
+DB_NAME=
+DB_PORT=
 ```
 ---
-## 🛠️ Tecnologías y Librerías
--Lenguaje: C++17
--Servidor HTTP: httplib.h (Header-only)
--Manejo de JSON: nlohmann/json.hpp (Header-only)
--Base de Datos: MySQL Server 8.0
--Cliente MySQL: libmysqlclient-dev (MySQL C API)
--Concurrencia: POSIX Threads (pthread)
 
----
-## Requisitos e Instalación
-
-### Dependencias del sistema
-
+## Compilación
 ```bash
-sudo apt update
-sudo apt install build-essential libmysqlclient-dev -y
+cd ingestor-microservice-cpp
+mkdir build && cd build
+cmake ..
+make
+./telemetry_server
 ```
-### Cabeceras
-```bash
-cd src
-
-wget [https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h](https://raw.githubusercontent.com/yhirose/cpp-httplib/master/httplib.h)
-
-wget [https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp](https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp)
-```
-
 ---
-## Compilar
-
-Para compilar el código vinculando la librería cliente de MySQL y el soporte de multihilo.
-
-```bash
-g++ -std=c++17 main.cpp -lmysqlclient -pthread -o api_server
-```
-
-Para iniciar el microservicio. El servidor iniciará escuchando en http://localhost:8085
-
-```bash
-./api_server
-```
-
----
-## Endpoints
-### Ingesta de métricas (Post /telemetry)
-**URL:** http://localhost:8085/telemetry  
+## Endpoints de la API
+### Telemetría
 **Método:** POST  
-**Headers:** Content-Type: application/json  
-
+**Ruta:** /telemetry
 ```bash
 {
-  "node_id": "rpi-oaxaca-01",
+  "node_id": "rpi-node-01",
   "hardware": {
-    "cpu_temp": 78.5,
-    "cpu_usage_pct": 65.0,
-    "ram_used_mb": 1200
+    "cpu_temp": 55.4,
+    "cpu_usage_pct": 32.1,
+    "ram_used_mb": 1024
   }
 }
 ```
-201 Created: Ingesta e inserción en MySQL exitosa.  
-400 Bad Request: Formato JSON inválido.  
-500 Internal Server Error: Fallo al conectar o insertar en MySQL.  
-
----
-### Consulta de Historial (GET /telemetry)
-**URL:** http://localhost:8085/telemetry  
+### Historial
 **Método:** GET  
-
-```bash
-{
-    "count": 1,
-    "data": [
-        {
-            "cpu_temp_celsius": 78.5,
-            "cpu_usage_pct": 65.0,
-            "node_id": "rpi-oaxaca-01",
-            "reading_id": 1,
-            "recorded_at": "2026-08-09 21:50:12",
-            "used_ram_mb": 1200
-        }
-    ],
-    "status": "success"
-}
-```
+**Ruta:** /telemetry  
+(200 OK): Devuelve las últimas 10 lecturas registradas en la base de datos.
