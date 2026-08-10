@@ -18,7 +18,7 @@ bool save_to_mysql(const dotenv &env, const string &node_id, double temp, double
 	string db_name = env.get("DB_NAME");
 	string db_port_str = env.get("DB_PORT");
 
-	// Validación: Si faltan variables críticas, detenemos la ejecución de la consulta
+	// Determina si se pudieron obtener las variables del .env
 	if (db_host.empty() || db_user.empty() || db_name.empty() || db_port_str.empty())
 	{
 		cerr << "Error: Faltan variables de entorno requeridas para la conexión a MySQL." << endl;
@@ -36,6 +36,7 @@ bool save_to_mysql(const dotenv &env, const string &node_id, double temp, double
 		return false;
 	}
 
+	// Concatena las variables en una consulta de sql
 	string query = "INSERT INTO node_telemetry (node_id, cpu_temp_celsius, cpu_usage_pct, used_ram_mb) VALUES ('" + node_id + "', " + to_string(temp) + ", " + to_string(cpu) + ", " + to_string(ram) + ");";
 
 	if (mysql_query(conn, query.c_str()))
@@ -46,6 +47,8 @@ bool save_to_mysql(const dotenv &env, const string &node_id, double temp, double
 	}
 
 	cout << "Registro insertado exitosamente para el nodo: " << node_id << endl;
+
+	// Cierra la conexión con la base de datos
 	mysql_close(conn);
 	return true;
 }
@@ -53,6 +56,7 @@ bool save_to_mysql(const dotenv &env, const string &node_id, double temp, double
 // Recupera las últimas 10 lecturas registradas
 json get_telemetry_history(const dotenv &env)
 {
+	// Crean un JSON vacío
 	json history = json::array();
 
 	string db_host = env.get("DB_HOST");
@@ -78,6 +82,7 @@ json get_telemetry_history(const dotenv &env)
 		return history;
 	}
 
+	// Pide las últimas 10 lecturas
 	string query = "SELECT reading_id, node_id, cpu_temp_celsius, cpu_usage_pct, used_ram_mb, recorded_at FROM node_telemetry ORDER BY reading_id DESC LIMIT 10;";
 
 	if (mysql_query(conn, query.c_str()) == 0)
@@ -85,6 +90,7 @@ json get_telemetry_history(const dotenv &env)
 		MYSQL_RES *result = mysql_store_result(conn);
 		MYSQL_ROW row;
 
+		// Recorre cada fila de la tabla
 		while ((row = mysql_fetch_row(result)))
 		{
 			json item;
